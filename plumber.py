@@ -2,6 +2,9 @@
 import abc
 
 
+__version__ = ('0', '1')
+
+
 class UnmetPrecondition(Exception):
     pass
 

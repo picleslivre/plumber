@@ -5,7 +5,7 @@ import mocker
 class PipeTests(mocker.MockerTestCase):
 
     def _makeOne(self, *args, **kwargs):
-        from plumber.base import Pipe
+        from plumber import Pipe
         return Pipe(*args, **kwargs)
 
     def test_pipe_cannot_be_instantiated(self):
@@ -17,7 +17,7 @@ class PipeTests(mocker.MockerTestCase):
         self.assertRaises(TypeError, lambda: self._makeOne(data))
 
     def test_returns_an_iterator(self):
-        from plumber.base import Pipe
+        from plumber import Pipe
 
         class Blitz(Pipe):
             def transform(self, data):
@@ -32,7 +32,7 @@ class PipeTests(mocker.MockerTestCase):
         self.assertTrue(hasattr(iter(p), 'next'))
 
     def test_accepts_generator_objects(self):
-        from plumber.base import Pipe
+        from plumber import Pipe
 
         class Blitz(Pipe):
             def transform(self, data):
@@ -49,7 +49,7 @@ class PipeTests(mocker.MockerTestCase):
         self.assertTrue(hasattr(iter(p), 'next'))
 
     def test_passing_precondition(self):
-        from plumber.base import Pipe, precondition
+        from plumber import Pipe, precondition
         precond = self.mocker.mock()
 
         precond(mocker.ANY)
@@ -76,7 +76,7 @@ class PipeTests(mocker.MockerTestCase):
         self.assertEqual(iter(p).next(), data[0])
 
     def test_not_passing_precondition(self):
-        from plumber.base import Pipe, precondition, UnmetPrecondition
+        from plumber import Pipe, precondition, UnmetPrecondition
         precond = self.mocker.mock()
 
         precond(mocker.ANY)
