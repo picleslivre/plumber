@@ -21,4 +21,6 @@ setup(
         "Programming Language :: Python",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
+    tests_require=["mocker"],
+    test_suite='tests',
 )
