@@ -100,3 +100,71 @@ class PipeTests(mocker.MockerTestCase):
 
         p = Blitz(data)
         self.assertEqual(iter(p).next(), data[0])
+
+
+class PipelineTests(mocker.MockerTestCase):
+
+    def _makeOneA(self):
+        from plumber import Pipe
+
+        class A(Pipe):
+            def transform(self, data):
+                data['name'] = data['name'].strip()
+                return data
+
+        return A
+
+    def _makeOneB(self):
+        from plumber import Pipe
+
+        class B(Pipe):
+            def transform(self, data):
+                data['name'] = data['name'].upper()
+                return data
+
+        return B
+
+    def test_run_pipeline(self):
+        from plumber import Pipeline
+        A = self._makeOneA()
+        B = self._makeOneB()
+
+        ppl = Pipeline(A, B)
+        post_data = ppl.run([{'name': '  foo    '}])
+
+        for pd in post_data:
+            self.assertEqual(pd, {'name': 'FOO'})
+
+    def test_run_pipeline_for_rewrapped_data(self):
+        from plumber import Pipeline
+        A = self._makeOneA()
+        B = self._makeOneB()
+
+        ppl = Pipeline(A, B)
+        post_data = ppl.run({'name': '  foo    '}, rewrap=True)
+
+        for pd in post_data:
+            self.assertEqual(pd, {'name': 'FOO'})
+
+    def test_pipes_are_run_in_right_order(self):
+        from plumber import Pipeline
+        A = self.mocker.mock()
+        B = self.mocker.mock()
+
+        with self.mocker.order():
+            A(mocker.ANY)
+            self.mocker.result(A)
+
+            B(mocker.ANY)
+            self.mocker.result(B)
+
+            iter(B)
+            self.mocker.result(B)
+
+        self.mocker.replay()
+
+        ppl = Pipeline(A, B)
+        post_data = ppl.run([{'name': None}])  # placebo input value
+
+        for pd in post_data:
+            self.assertNone(pd)
