@@ -1,5 +1,7 @@
 # coding: utf-8
 import abc
+import Queue
+import threading
 
 
 __version__ = ('0', '1')
@@ -75,7 +77,7 @@ class Pipeline(object):
     def __init__(self, *args):
         self._pipes = args
 
-    def run(self, data, rewrap=False):
+    def run(self, data, rewrap=False, prefetch=0):
         """
         Wires the pipeline and returns a lazy object of
         the transformed data.
@@ -86,6 +88,9 @@ class Pipeline(object):
         ``rewrap`` is a bool that indicates the need to rewrap
         data in case iterating over it produces undesired data,
         for instance ``dict`` instances.
+
+        ``prefetch`` is an int defining the number of items to
+        be prefetched once the pipeline starts yielding data.
         """
         if rewrap:
             data = [data]
@@ -93,5 +98,26 @@ class Pipeline(object):
         for pipe in self._pipes:
             data = pipe(data)
         else:
-            for out_data in data:
+            iterable = _prefetch(data, prefetch) if prefetch else data
+            for out_data in iterable:
                 yield out_data
+
+
+def _prefetch(iterable, buff):
+    def worker(job_queue, it):
+        for item in it:
+            job_queue.put(item)
+
+        job_queue.put(None)
+
+    job_queue = Queue.Queue(buff)
+    thread = threading.Thread(target=worker, args=(job_queue, iter(iterable)))
+    thread.daemon = True
+    thread.start()
+
+    while True:
+        item = job_queue.get()
+        if item is None:
+            return
+        else:
+            yield item

@@ -135,6 +135,17 @@ class PipelineTests(mocker.MockerTestCase):
         for pd in post_data:
             self.assertEqual(pd, {'name': 'FOO'})
 
+    def test_run_pipeline_prefetching_data(self):
+        from plumber import Pipeline
+        A = self._makeOneA()
+        B = self._makeOneB()
+
+        ppl = Pipeline(A, B)
+        post_data = ppl.run([{'name': '  foo    '}], prefetch=5)
+
+        for pd in post_data:
+            self.assertEqual(pd, {'name': 'FOO'})
+
     def test_run_pipeline_for_rewrapped_data(self):
         from plumber import Pipeline
         A = self._makeOneA()
