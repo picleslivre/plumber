@@ -179,3 +179,22 @@ class PipelineTests(mocker.MockerTestCase):
 
         for pd in post_data:
             self.assertNone(pd)
+
+    def test_prefetch_callable_is_called_when_prefetch_arg_is_greater_than_zero(self):
+        raw_data = [{'name': '  foo    '}]
+        pos_data = [{'name': 'FOO'}]
+
+        pf_callable = self.mocker.mock()
+        pf_callable(mocker.ANY, 5)
+        self.mocker.result(pos_data)
+        self.mocker.replay()
+
+        from plumber import Pipeline
+        A = self._makeOneA()
+        B = self._makeOneB()
+
+        ppl = Pipeline(A, B, prefetch_callable=pf_callable)
+        post_data = ppl.run(raw_data, prefetch=5)
+
+        for pd in post_data:
+            self.assertEqual(pd, {'name': 'FOO'})

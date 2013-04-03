@@ -2,13 +2,43 @@
 import abc
 import Queue
 import threading
+import multiprocessing
 
 
 __version__ = ('0', '1')
+__all__ = ['UnmetPrecondition', 'Pipe', 'Pipeline']
 
 
 class UnmetPrecondition(Exception):
     pass
+
+
+def _thread_based_prefetch(iterable, buff):
+
+    def worker(job_queue, it):
+        for item in it:
+            job_queue.put(item)
+
+        job_queue.put(None)
+
+    max_threads = multiprocessing.cpu_count() * 2
+    total_threads = buff if buff < max_threads else max_threads
+
+    running_threads = []
+    job_queue = Queue.Queue(buff)
+    source_data = iter(iterable)
+
+    for t in range(total_threads):
+        thread = threading.Thread(target=worker, args=(job_queue, source_data))
+        running_threads.append(thread)
+        thread.start()
+
+    while True:
+        item = job_queue.get()
+        if item is None:
+            return
+        else:
+            yield item
 
 
 def precondition(precond):
@@ -73,9 +103,19 @@ class Pipeline(object):
 
     ``*args`` are the pipes that will be executed in order
     to transform the input data.
+
+    ``prefetch_callable`` is a keyword-only argument who
+    receives a callable that handles data prefetching.
     """
-    def __init__(self, *args):
+    def __init__(self, *args, **kwargs):
         self._pipes = args
+
+        # the old way to handle keyword-only args
+        prefetch_callable = kwargs.pop('prefetch_callable', None)
+        if prefetch_callable:
+            self._prefetch_callable = prefetch_callable
+        else:
+            self._prefetch_callable = _thread_based_prefetch
 
     def run(self, data, rewrap=False, prefetch=0):
         """
@@ -98,26 +138,6 @@ class Pipeline(object):
         for pipe in self._pipes:
             data = pipe(data)
         else:
-            iterable = _prefetch(data, prefetch) if prefetch else data
+            iterable = self._prefetch_callable(data, prefetch) if prefetch else data
             for out_data in iterable:
                 yield out_data
-
-
-def _prefetch(iterable, buff):
-    def worker(job_queue, it):
-        for item in it:
-            job_queue.put(item)
-
-        job_queue.put(None)
-
-    job_queue = Queue.Queue(buff)
-    thread = threading.Thread(target=worker, args=(job_queue, iter(iterable)))
-    thread.daemon = True
-    thread.start()
-
-    while True:
-        item = job_queue.get()
-        if item is None:
-            return
-        else:
-            yield item
