@@ -28,7 +28,8 @@ class PipeTests(mocker.MockerTestCase):
                     'acronym': 'AISS',
                 }
 
-        p = Blitz(data)
+        p = Blitz()
+        p.feed(data)
         self.assertTrue(hasattr(iter(p), 'next'))
 
     def test_accepts_generator_objects(self):
@@ -45,7 +46,8 @@ class PipeTests(mocker.MockerTestCase):
                     }
             yield data
 
-        p = Blitz(make_generator())
+        p = Blitz()
+        p.feed(make_generator())
         self.assertTrue(hasattr(iter(p), 'next'))
 
     def test_passing_precondition(self):
@@ -72,7 +74,8 @@ class PipeTests(mocker.MockerTestCase):
             },
         ]
 
-        p = Blitz(data)
+        p = Blitz()
+        p.feed(data)
         self.assertEqual(iter(p).next(), data[0])
 
     def test_not_passing_precondition(self):
@@ -98,7 +101,8 @@ class PipeTests(mocker.MockerTestCase):
             },
         ]
 
-        p = Blitz(data)
+        p = Blitz()
+        p.feed(data)
         self.assertEqual(iter(p).next(), data[0])
 
 
@@ -129,7 +133,7 @@ class PipelineTests(mocker.MockerTestCase):
         A = self._makeOneA()
         B = self._makeOneB()
 
-        ppl = Pipeline(A, B)
+        ppl = Pipeline(A(), B())
         post_data = ppl.run([{'name': '  foo    '}])
 
         for pd in post_data:
@@ -140,7 +144,7 @@ class PipelineTests(mocker.MockerTestCase):
         A = self._makeOneA()
         B = self._makeOneB()
 
-        ppl = Pipeline(A, B)
+        ppl = Pipeline(A(), B())
         post_data = ppl.run([{'name': '  foo    '}], prefetch=5)
 
         for pd in post_data:
@@ -151,7 +155,7 @@ class PipelineTests(mocker.MockerTestCase):
         A = self._makeOneA()
         B = self._makeOneB()
 
-        ppl = Pipeline(A, B)
+        ppl = Pipeline(A(), B())
         post_data = ppl.run({'name': '  foo    '}, rewrap=True)
 
         for pd in post_data:
@@ -159,22 +163,22 @@ class PipelineTests(mocker.MockerTestCase):
 
     def test_pipes_are_run_in_right_order(self):
         from plumber import Pipeline
-        A = self.mocker.mock()
-        B = self.mocker.mock()
+        a = self.mocker.mock()
+        b = self.mocker.mock()
 
         with self.mocker.order():
-            A(mocker.ANY)
-            self.mocker.result(A)
+            a.feed(mocker.ANY)
+            self.mocker.result(a)
 
-            B(mocker.ANY)
-            self.mocker.result(B)
+            b.feed(mocker.ANY)
+            self.mocker.result(b)
 
-            iter(B)
-            self.mocker.result(B)
+            iter(b)
+            self.mocker.result(b)
 
         self.mocker.replay()
 
-        ppl = Pipeline(A, B)
+        ppl = Pipeline(a, b)
         post_data = ppl.run([{'name': None}])  # placebo input value
 
         for pd in post_data:
@@ -193,7 +197,7 @@ class PipelineTests(mocker.MockerTestCase):
         A = self._makeOneA()
         B = self._makeOneB()
 
-        ppl = Pipeline(A, B, prefetch_callable=pf_callable)
+        ppl = Pipeline(A(), B(), prefetch_callable=pf_callable)
         post_data = ppl.run(raw_data, prefetch=5)
 
         for pd in post_data:

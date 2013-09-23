@@ -74,11 +74,18 @@ class Pipe(object):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, data):
+    def __new__(cls, *args, **kwargs):
+        instance = super(Pipe, cls).__new__(cls, *args, **kwargs)
+        instance._iterable_data = []
+        return instance
+
+    def feed(self, iterable):
         """
-        ``data`` must be an iterable
+        Feeds the pipe with data.
+
+        :param iterable: the data to be processed
         """
-        self._iterable_data = data
+        self._iterable_data = iterable
 
     def __iter__(self):
         """
@@ -136,8 +143,10 @@ class Pipeline(object):
             data = [data]
 
         for pipe in self._pipes:
-            data = pipe(data)
+            pipe.feed(data)
+            data = pipe
         else:
             iterable = self._prefetch_callable(data, prefetch) if prefetch else data
             for out_data in iterable:
                 yield out_data
+
