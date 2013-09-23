@@ -25,7 +25,7 @@ class UpperPipe(plumber.Pipe):
     def transform(self, data):
         return data.upper()
 
-ppl = plumber.Pipeline(StripPipe, UpperPipe)
+ppl = plumber.Pipeline(StripPipe(), UpperPipe())
 transformed_data = ppl.run([" I am the Great Cornholio!"])
 
 for td in transformed_data:
