@@ -105,6 +105,29 @@ class PipeTests(mocker.MockerTestCase):
         p.feed(data)
         self.assertEqual(iter(p).next(), data[0])
 
+    def test_pipes_receiving_arguments_during_initialization(self):
+        from plumber import Pipe
+        class Blitz(Pipe):
+            def __init__(self, func):
+                self.func = func
+
+            def transform(self, data):
+                """
+                This transformation is not called
+                """
+                return self.func(data)
+
+        data = [
+            'abstract_keyword_languages',
+            'acronym',
+        ]
+
+        p = Blitz(len)
+        p.feed(data)
+
+        for dt in p:
+            self.assertIsInstance(dt, int)
+
 
 class PipelineTests(mocker.MockerTestCase):
 
