@@ -202,3 +202,42 @@ class PipelineTests(mocker.MockerTestCase):
 
         for pd in post_data:
             self.assertEqual(pd, {'name': 'FOO'})
+
+    def test_prefetching_generators(self):
+        from plumber import Pipeline
+        import time
+        def makeA():
+            from plumber import Pipe
+
+            class A(Pipe):
+                def transform(self, data):
+                    data['name'] = data['name'].strip()
+                    time.sleep(0.3)
+                    return data
+
+            return A
+
+        def makeB():
+            from plumber import Pipe
+
+            class B(Pipe):
+                def transform(self, data):
+                    data['name'] = data['name'].upper()
+                    return data
+
+            return B
+
+        raw_data = ({'name': '  foo    '} for i in range(10))
+
+        A = makeA()
+        B = makeB()
+
+        ppl = Pipeline(A(), B())
+
+        self.assertTrue(hasattr(raw_data, 'next'))
+
+        post_data = ppl.run(raw_data, prefetch=2)
+
+        for pd in post_data:
+            self.assertEqual(pd, {'name': 'FOO'})
+

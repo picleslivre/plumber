@@ -5,12 +5,28 @@ import threading
 import multiprocessing
 
 
-__version__ = ('0', '1')
+__version__ = ('0', '2')
 __all__ = ['UnmetPrecondition', 'Pipe', 'Pipeline']
 
 
 class UnmetPrecondition(Exception):
     pass
+
+
+class ThreadSafeIter(object):
+    """
+    Wraps an iterable for safe use in a threaded environment.
+    """
+    def __init__(self, it):
+        self.it = iter(it)
+        self.lock = threading.Lock()
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        with self.lock:
+            return next(self.it)
 
 
 def _thread_based_prefetch(iterable, buff):
@@ -26,7 +42,7 @@ def _thread_based_prefetch(iterable, buff):
 
     running_threads = []
     job_queue = Queue.Queue(buff)
-    source_data = iter(iterable)
+    source_data = ThreadSafeIter(iterable)
 
     for t in range(total_threads):
         thread = threading.Thread(target=worker, args=(job_queue, source_data))
