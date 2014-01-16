@@ -264,3 +264,27 @@ class PipelineTests(mocker.MockerTestCase):
         for pd in post_data:
             self.assertEqual(pd, {'name': 'FOO'})
 
+    def test_processing_custom_objects(self):
+        class Foo(object):
+            def __init__(self):
+                self.name = u'Foo name'
+
+        raw_data = Foo()
+        pos_data = [{'name': 'FOO NAME'}]
+
+        from plumber import Pipeline, Pipe
+        class A(Pipe):
+            def transform(self, data):
+                return {'name': data.name}
+
+        class B(Pipe):
+            def transform(self, data):
+                data = {k:v.upper() for k, v in data.items()}
+                return data
+
+        ppl = Pipeline(A(), B())
+        post_data = ppl.run(raw_data, rewrap=True)
+
+        for pd in post_data:
+            self.assertEqual(pd, {'name': 'FOO NAME'})
+
