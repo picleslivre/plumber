@@ -10,12 +10,12 @@ setup(
     name="scielo.plumber",
     version='.'.join(plumber.__version__),
     description="Simple data transformation pipeline.",
-    long_description=open('README.md').read(),
     author="SciELO & contributors",
     author_email="scielo-dev@googlegroups.com",
     license="BSD",
     url="http://docs.scielo.org",
     py_modules=["plumber"],
+    package_data={'': ['README.md', 'LICENSE']},
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
