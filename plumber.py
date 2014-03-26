@@ -5,8 +5,8 @@ import threading
 import multiprocessing
 
 
-__version__ = ('0', '2')
-__all__ = ['UnmetPrecondition', 'Pipe', 'Pipeline']
+__version__ = ('0', '7')
+__all__ = ['UnmetPrecondition', 'Pipe', 'Pipeline', 'precondition']
 
 
 class UnmetPrecondition(Exception):

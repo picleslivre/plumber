@@ -1,0 +1,4 @@
+List of contributors:
+
+- Gustavo Fonseca - gustavo@gfonseca.net
+
