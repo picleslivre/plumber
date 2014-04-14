@@ -15,6 +15,29 @@ pip install scielo.plumber
 ```python
 import plumber
 
+@plumber.pipe
+def strip_pipe(data):
+    return data.strip()
+
+@plumber.pipe
+def upper_pipe(data):
+    return data.upper()
+
+ppl = plumber.Pipeline(strip_pipe, upper_pipe)
+transformed_data = ppl.run([" I am the Great Cornholio!", "Hey Jude, don't make it bad "])
+
+for td in transformed_data:
+    print(td)
+
+I AM THE GREAT CORNHOLIO!
+HEY JUDE, DON'T MAKE IT BAD
+```
+
+
+## Class based pipes
+
+```python
+import plumber
 
 class StripPipe(plumber.Pipe):
     def transform(self, data):

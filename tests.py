@@ -1,4 +1,6 @@
 # coding: utf-8
+import unittest
+
 import mocker
 
 
@@ -185,9 +187,9 @@ class PipelineTests(mocker.MockerTestCase):
             self.assertEqual(pd, {'name': 'FOO'})
 
     def test_pipes_are_run_in_right_order(self):
-        from plumber import Pipeline
-        a = self.mocker.mock()
-        b = self.mocker.mock()
+        from plumber import Pipeline, Pipe
+        a = self.mocker.mock(Pipe)
+        b = self.mocker.mock(Pipe)
 
         with self.mocker.order():
             a.feed(mocker.ANY)
@@ -287,4 +289,33 @@ class PipelineTests(mocker.MockerTestCase):
 
         for pd in post_data:
             self.assertEqual(pd, {'name': 'FOO NAME'})
+
+
+class FunctionBasedPipesTests(unittest.TestCase):
+
+    def test_pipe_decorator_adds_pipe_attribute(self):
+        from plumber import pipe
+        @pipe
+        def do_something(data):
+            return data.lower()
+
+        self.assertTrue(hasattr(do_something, '_pipe'))
+
+    def test_pipe_function_runs(self):
+        from plumber import Pipeline, pipe
+        @pipe
+        def do_something(data):
+            return data.lower()
+
+        ppl = Pipeline(do_something)
+        post_data = ppl.run(['FOO'])
+
+        self.assertEqual(next(post_data), 'foo')
+
+    def test_non_decorated_functions_fails(self):
+        from plumber import Pipeline
+        def do_something(data):
+            return data.lower()
+
+        self.assertRaises(ValueError, lambda: Pipeline(do_something))
 

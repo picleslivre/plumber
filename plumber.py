@@ -3,9 +3,10 @@ import abc
 import Queue
 import threading
 import multiprocessing
+import types
 
 
-__version__ = ('0', '7')
+__version__ = ('0', '8')
 __all__ = ['UnmetPrecondition', 'Pipe', 'Pipeline', 'precondition']
 
 
@@ -120,6 +121,17 @@ class Pipe(object):
         """
 
 
+class FunctionBasedPipe(Pipe):
+    """
+    Wraps a function to make possible its usage as a Pipe.
+    """
+    def __init__(self, pipe_func):
+        self.declared_function = pipe_func
+
+    def transform(self, data):
+        return self.declared_function(data)
+
+
 class Pipeline(object):
     """
     Represents a chain of pipes (duh).
@@ -131,7 +143,23 @@ class Pipeline(object):
     receives a callable that handles data prefetching.
     """
     def __init__(self, *args, **kwargs):
-        self._pipes = args
+        self._pipes = []
+
+        for pipe in args:
+            # the regular case where Pipe instances are passed in
+            if isinstance(pipe, Pipe):
+                self._pipes.append(pipe)
+
+            # callables may be passed if they have been properly
+            # decorated with `pipe`.
+            elif callable(pipe):
+                try:
+                    self._pipes.append(pipe._pipe)
+                except AttributeError:
+                    raise ValueError('%s is not a valid pipe' % pipe.__name__)
+            else:
+                raise ValueError('%s is not a valid pipe' % pipe.__name__)
+
 
         # the old way to handle keyword-only args
         prefetch_callable = kwargs.pop('prefetch_callable', None)
@@ -165,4 +193,25 @@ class Pipeline(object):
             iterable = self._prefetch_callable(data, prefetch) if prefetch else data
             for out_data in iterable:
                 yield out_data
+
+
+def pipe(callable):
+    """
+    Decorator that sets any callable to be used as a pipe.
+
+    After decorated, the original callable will have a `_pipe`
+    attribute containing an instance of :class:`FunctionBasedPipe`.
+
+    Usage:
+
+        >>> @pipe
+        ... def to_upper(data):
+        ...     return data.upper()
+        ...
+        >>> ppl = Pipeline(to_upper)
+    """
+    pipe_instance = FunctionBasedPipe(callable)
+    setattr(callable, '_pipe', pipe_instance)
+    return callable
+
 
