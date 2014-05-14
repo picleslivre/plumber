@@ -1,4 +1,4 @@
-# scielo.plumber
+# picles.plumber
 
 A simple data transformation pipeline.
 
