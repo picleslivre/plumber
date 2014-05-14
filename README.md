@@ -6,7 +6,7 @@ A simple data transformation pipeline.
 ## Installation
 
 ```bash
-pip install scielo.plumber
+git clone https://github.com/picleslivre/plumber.git && cd plumber && python setup.py install
 ```
 
 
@@ -77,6 +77,9 @@ for td in transformed_data:
 I AM THE GREAT CORNHOLIO!
 HEY JUDE, DON'T MAKE IT BAD
 ```
+
+By default the prefetching mechanism is thread-based, so be careful with cpu-bound
+pipelines.
 
 
 ## Preconditions
