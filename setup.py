@@ -7,13 +7,13 @@ except ImportError:
 
 
 setup(
-    name="scielo.plumber",
+    name="picles.plumber",
     version='.'.join(plumber.__version__),
     description="Simple data transformation pipeline.",
-    author="SciELO & contributors",
-    author_email="scielo-dev@googlegroups.com",
+    author="Gustavo Fonseca & contributors",
+    author_email="gustavo@gfonseca.net",
     license="BSD",
-    url="http://docs.scielo.org",
+    url="https://github.com/picleslivre/plumber/",
     py_modules=["plumber"],
     package_data={'': ['README.md', 'LICENSE']},
     classifiers=[
