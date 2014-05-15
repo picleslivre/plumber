@@ -102,11 +102,6 @@ class StripPipe(plumber.Pipe):
         return data.strip()
 ```
 
-## Links
-
-* IRC: #scielo @ freenode
-* Mailing list: scielo-dev@googlegroups.com
-
 
 ## Use license
 
