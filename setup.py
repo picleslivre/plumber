@@ -1,9 +1,13 @@
 #!/usr/bin/env python
+import sys
+from setuptools import setup, Extension
+
 import plumber
-try:
-    from setuptools import setup, Extension
-except ImportError:
-    from distutils.core import setup, Extension
+
+tests_require = []
+PY2 = sys.version_info[0] == 2
+if PY2:
+    tests_require.append('mock')
 
 
 setup(
@@ -24,6 +28,6 @@ setup(
         "Programming Language :: Python :: 2.6",
         "Programming Language :: Python :: 2.7",
     ],
-    tests_require=["mocker"],
+    tests_require=tests_require,
     test_suite='tests',
 )

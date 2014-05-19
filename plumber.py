@@ -1,13 +1,20 @@
 # coding: utf-8
 import abc
-import Queue
+try:
+    from queue import Queue
+except ImportError:  # PY2
+    from Queue import Queue
 import threading
 import multiprocessing
 import types
+import logging
 
 
-__version__ = ('0', '8')
+__version__ = ('0', '9')
 __all__ = ['UnmetPrecondition', 'Pipe', 'Pipeline', 'precondition']
+
+
+logger = logging.getLogger(__name__)
 
 
 class UnmetPrecondition(Exception):
@@ -25,12 +32,13 @@ class ThreadSafeIter(object):
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         with self.lock:
             return next(self.it)
+    next = __next__
 
 
-def _thread_based_prefetch(iterable, buff):
+def thread_based_prefetch(iterable, buff):
 
     def worker(job_queue, it):
         for item in it:
@@ -42,18 +50,25 @@ def _thread_based_prefetch(iterable, buff):
     total_threads = buff if buff < max_threads else max_threads
 
     running_threads = []
-    job_queue = Queue.Queue(buff)
+    job_queue = Queue(buff)
     source_data = ThreadSafeIter(iterable)
 
     for t in range(total_threads):
         thread = threading.Thread(target=worker, args=(job_queue, source_data))
         running_threads.append(thread)
         thread.start()
+        logger.debug('Spawned worker thread %s' % thread)
 
     while True:
         item = job_queue.get()
         if item is None:
-            return
+            total_threads -= 1
+            logger.debug('Worker thread terminated. %s remaining.' % total_threads)
+
+            if total_threads == 0:
+                return
+            else:
+                continue
         else:
             yield item
 
@@ -91,11 +106,6 @@ class Pipe(object):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __new__(cls, *args, **kwargs):
-        instance = super(Pipe, cls).__new__(cls, *args, **kwargs)
-        instance._iterable_data = []
-        return instance
-
     def feed(self, iterable):
         """
         Feeds the pipe with data.
@@ -111,7 +121,7 @@ class Pipe(object):
 
         The iterable interface is the heart of the pipeline machinery.
         """
-        for data in self._iterable_data:
+        for data in getattr(self, '_iterable_data', []):
             yield self.transform(data)
 
     @abc.abstractmethod
@@ -136,11 +146,12 @@ class Pipeline(object):
     """
     Represents a chain of pipes (duh).
 
-    ``*args`` are the pipes that will be executed in order
-    to transform the input data.
+    Accepts an arbitrary number of pipes that will be executed sequentially
+    in order to transform the input data.
 
-    ``prefetch_callable`` is a keyword-only argument who
-    receives a callable that handles data prefetching.
+    :param prefetch_callable: (optional) keyword-only argument who
+    receives a callable that handles data prefetching. Default is
+    `thread_based_prefetch`.
     """
     def __init__(self, *args, **kwargs):
         self._pipes = []
@@ -160,28 +171,29 @@ class Pipeline(object):
             else:
                 raise ValueError('%s is not a valid pipe' % pipe.__name__)
 
-
         # the old way to handle keyword-only args
         prefetch_callable = kwargs.pop('prefetch_callable', None)
         if prefetch_callable:
             self._prefetch_callable = prefetch_callable
         else:
-            self._prefetch_callable = _thread_based_prefetch
+            self._prefetch_callable = thread_based_prefetch
 
     def run(self, data, rewrap=False, prefetch=0):
         """
         Wires the pipeline and returns a lazy object of
         the transformed data.
 
-        ``data`` must be an iterable, where a full document
+        :param data: must be an iterable, where a full document
         must be returned for each loop
 
-        ``rewrap`` is a bool that indicates the need to rewrap
-        data in case iterating over it produces undesired data,
+        :param rewrap: (optional) is a bool that indicates the need to rewrap
+        data in cases where iterating over it produces undesired results,
         for instance ``dict`` instances.
 
-        ``prefetch`` is an int defining the number of items to
-        be prefetched once the pipeline starts yielding data.
+        :param prefetch: (optional) is an int defining the number of items to
+        be prefetched once the pipeline starts yielding data. The
+        default prefetching mechanism is based on threads, so be
+        careful with CPU-bound processing pipelines.
         """
         if rewrap:
             data = [data]
