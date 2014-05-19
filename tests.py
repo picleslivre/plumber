@@ -182,29 +182,22 @@ class PipelineTests(unittest.TestCase):
         for pd in post_data:
             self.assertEqual(pd, {'name': 'FOO'})
 
-    @unittest.skip('')
     def test_pipes_are_run_in_right_order(self):
         from plumber import Pipeline, Pipe
-        a = self.mocker.mock(Pipe)
-        b = self.mocker.mock(Pipe)
+        parent = mock.Mock()
+        parent.a = mock.MagicMock(spec=Pipe)
+        parent.a.__iter__.return_value = ['foo']
+        parent.b = mock.MagicMock(spec=Pipe)
+        parent.b.__iter__.return_value = ['foo']
 
-        with self.mocker.order():
-            a.feed(mocker.ANY)
-            self.mocker.result(a)
-
-            b.feed(mocker.ANY)
-            self.mocker.result(b)
-
-            iter(b)
-            self.mocker.result(b)
-
-        self.mocker.replay()
-
-        ppl = Pipeline(a, b)
+        ppl = Pipeline(parent.a, parent.b)
         post_data = ppl.run([{'name': None}])  # placebo input value
 
         for pd in post_data:
-            self.assertNone(pd)
+            pass  # do nothing
+
+        parent.mock_calls[0] == mock.call.a.feed([{'name': None}])
+        parent.mock_calls[1] == mock.call.b.feed(mock.ANY)
 
     def test_prefetch_callable_is_called_when_prefetch_arg_is_greater_than_zero(self):
         raw_data = [{'name': '  foo    '}]
