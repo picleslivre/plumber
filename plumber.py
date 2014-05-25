@@ -89,14 +89,15 @@ def precondition(precond):
         `self` argument when it is a method).
         """
         def decorated(*args):
-            # try to handle `f` as method
-            try:
-                instance, data = args[:2]
-                if not isinstance(instance, Pipe):
-                    raise TypeError('%s is not a valid pipe' % instance.__name__)
+            if len(args) > 2:
+                raise TypeError('%s takes only 1 argument (or 2 for instance methods)' % f.__name__)
 
-            except ValueError:
-                # handle `f` as function
+            try:
+                instance, data = args
+                if not isinstance(instance, Pipe):
+                    raise TypeError('%s is not a valid pipe instance' % instance)
+
+            except ValueError:  # tuple unpacking error
                 data = args[0]
 
             try:

@@ -320,3 +320,32 @@ class FunctionBasedPipesTests(unittest.TestCase):
 
         self.assertEqual(next(post_data), 'foo')
 
+
+class PreconditionTests(unittest.TestCase):
+
+    def test_wrong_params_list(self):
+        from plumber import precondition, UnmetPrecondition
+        def precond(data):
+            if not isinstance(data, str):
+                raise UnmetPrecondition()
+
+        @precondition(precond)
+        def do_something(data, wrong_param):
+            return data.lower()
+
+        self.assertRaises(TypeError, lambda: do_something('FOO', 'Bar'))
+
+    def test_wrong_params_on_instance_methods(self):
+        from plumber import precondition, UnmetPrecondition
+        def precond(data):
+            if not isinstance(data, str):
+                raise UnmetPrecondition()
+
+        class Bar(object):
+            @precondition(precond)
+            def do_something(self, data, wrong_param):
+                return data.lower()
+
+        bar = Bar()
+        self.assertRaises(TypeError, lambda: bar.do_something('FOO', 'Bar'))
+
