@@ -106,8 +106,8 @@ Function based pipes can also define preconditions, but the decorators must be d
 in the following order:
 
 ```python
-@plumber.pipe
-@plumber.precondition(lambda x: isinstance(x, str))
+@pipe
+@precondition(is_text)
 def do_something(data):
     """some code"""
 ```
