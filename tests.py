@@ -306,5 +306,17 @@ class FunctionBasedPipesTests(unittest.TestCase):
         def do_something(data):
             return data.lower()
 
-        self.assertRaises(ValueError, lambda: Pipeline(do_something))
+        self.assertRaises(TypeError, lambda: Pipeline(do_something))
+
+    def test_pipe_function_precondition(self):
+        from plumber import Pipeline, pipe, precondition
+        @pipe
+        @precondition(lambda x: isinstance(x, str))
+        def do_something(data):
+            return data.lower()
+
+        ppl = Pipeline(do_something)
+        post_data = ppl.run(['FOO'])
+
+        self.assertEqual(next(post_data), 'foo')
 

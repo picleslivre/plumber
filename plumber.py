@@ -83,14 +83,29 @@ def precondition(precond):
     is bypassed.
     """
     def decorator(f):
-        def decorated(instance, data):
+        """`f` can be a reference to a method or function. In
+        both cases the `data` is expected to be passed as the
+        first positional argument (obviously respecting the
+        `self` argument when it is a method).
+        """
+        def decorated(*args):
+            # try to handle `f` as method
+            try:
+                instance, data = args[:2]
+                if not isinstance(instance, Pipe):
+                    raise TypeError('%s is not a valid pipe' % instance.__name__)
+
+            except ValueError:
+                # handle `f` as function
+                data = args[0]
+
             try:
                 precond(data)
             except UnmetPrecondition:
                 # bypass the pipe
                 return data
             else:
-                return f(instance, data)
+                return f(*args)
         return decorated
     return decorator
 
@@ -167,9 +182,9 @@ class Pipeline(object):
                 try:
                     self._pipes.append(pipe._pipe)
                 except AttributeError:
-                    raise ValueError('%s is not a valid pipe' % pipe.__name__)
+                    raise TypeError('%s is not a valid pipe' % pipe.__name__)
             else:
-                raise ValueError('%s is not a valid pipe' % pipe.__name__)
+                raise TypeError('%s is not a valid pipe' % pipe.__name__)
 
         # the old way to handle keyword-only args
         prefetch_callable = kwargs.pop('prefetch_callable', None)

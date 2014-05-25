@@ -96,12 +96,21 @@ def is_text(data):
     if not isinstance(data, basestring):
         raise UnmetPrecondition()
 
-@precondition(is_text)
 class StripPipe(plumber.Pipe):
+    @precondition(is_text)
     def transform(self, data):
         return data.strip()
 ```
 
+Function based pipes can also define preconditions, but the decorators must be declared
+in the following order:
+
+```python
+@plumber.pipe
+@plumber.precondition(lambda x: isinstance(x, str))
+def do_something(data):
+    """some code"""
+```
 
 ## Use license
 
