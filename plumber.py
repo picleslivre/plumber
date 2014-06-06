@@ -6,12 +6,11 @@ except ImportError:  # PY2
     from Queue import Queue
 import threading
 import multiprocessing
-import types
 import logging
 
 
-__version__ = ('0', '9')
-__all__ = ['UnmetPrecondition', 'Pipe', 'Pipeline', 'precondition']
+__version__ = ('0', '9', '1')
+__all__ = ['UnmetPrecondition', 'Pipe', 'Pipeline', 'precondition', 'pipe']
 
 
 logger = logging.getLogger(__name__)
