@@ -9,8 +9,9 @@ import multiprocessing
 import logging
 
 
-__version__ = ('0', '9', '1')
-__all__ = ['UnmetPrecondition', 'Pipe', 'Pipeline', 'precondition', 'pipe']
+__version__ = ('0', '11')
+__all__ = ['UnmetPrecondition', 'Filter', 'Pipe', 'Pipeline', 'precondition',
+        'filter', 'pipe']
 
 
 logger = logging.getLogger(__name__)
@@ -110,7 +111,7 @@ def precondition(precond):
     return decorator
 
 
-class Pipe(object):
+class Filter(object):
     """
     A segment of the transformation pipeline.
 
@@ -123,7 +124,7 @@ class Pipe(object):
 
     def feed(self, iterable):
         """
-        Feeds the pipe with data.
+        Feeds the filter with data.
 
         :param iterable: the data to be processed
         """
@@ -146,45 +147,51 @@ class Pipe(object):
         """
 
 
-class FunctionBasedPipe(Pipe):
+Pipe = Filter
+
+
+class FunctionBasedFilter(Filter):
     """
-    Wraps a function to make possible its usage as a Pipe.
+    Wraps a function to make possible its usage as a Filter.
     """
-    def __init__(self, pipe_func):
-        self.declared_function = pipe_func
+    def __init__(self, function):
+        self.declared_function = function
 
     def transform(self, data):
         return self.declared_function(data)
 
 
+FunctionBasedPipe = FunctionBasedFilter
+
+
 class Pipeline(object):
     """
-    Represents a chain of pipes (duh).
+    Represents a chain of filters filters (duh).
 
-    Accepts an arbitrary number of pipes that will be executed sequentially
-    in order to transform the input data.
+    Accepts an arbitrary number of filters that will be executed sequentially
+    in order to process the input data.
 
     :param prefetch_callable: (optional) keyword-only argument who
     receives a callable that handles data prefetching. Default is
     `thread_based_prefetch`.
     """
     def __init__(self, *args, **kwargs):
-        self._pipes = []
+        self._filters = []
 
-        for pipe in args:
-            # the regular case where Pipe instances are passed in
-            if isinstance(pipe, Pipe):
-                self._pipes.append(pipe)
+        for _filter in args:
+            # the regular case where Filter instances are passed in
+            if isinstance(_filter, Filter):
+                self._filters.append(_filter)
 
             # callables may be passed if they have been properly
-            # decorated with `pipe`.
-            elif callable(pipe):
+            # decorated with `filter`.
+            elif callable(_filter):
                 try:
-                    self._pipes.append(pipe._pipe)
+                    self._filters.append(_filter._filter)
                 except AttributeError:
-                    raise TypeError('%s is not a valid pipe' % pipe.__name__)
+                    raise TypeError('%s is not a valid filter' % _filter.__name__)
             else:
-                raise TypeError('%s is not a valid pipe' % pipe.__name__)
+                raise TypeError('%s is not a valid filter' % _filter.__name__)
 
         # the old way to handle keyword-only args
         prefetch_callable = kwargs.pop('prefetch_callable', None)
@@ -213,32 +220,35 @@ class Pipeline(object):
         if rewrap:
             data = [data]
 
-        for pipe in self._pipes:
-            pipe.feed(data)
-            data = pipe
+        for _filter in self._filters:
+            _filter.feed(data)
+            data = _filter
         else:
             iterable = self._prefetch_callable(data, prefetch) if prefetch else data
             for out_data in iterable:
                 yield out_data
 
 
-def pipe(callable):
+def filter(callable):
     """
-    Decorator that sets any callable to be used as a pipe.
+    Decorator that sets any callable to be used as a filter.
 
-    After decorated, the original callable will have a `_pipe`
-    attribute containing an instance of :class:`FunctionBasedPipe`.
+    After decorated, the original callable will have a `_filter`
+    attribute containing an instance of :class:`FunctionBasedFilter`.
 
     Usage:
 
-        >>> @pipe
+        >>> @filter
         ... def to_upper(data):
         ...     return data.upper()
         ...
         >>> ppl = Pipeline(to_upper)
     """
-    pipe_instance = FunctionBasedPipe(callable)
-    setattr(callable, '_pipe', pipe_instance)
+    filter_instance = FunctionBasedFilter(callable)
+    setattr(callable, '_filter', filter_instance)
     return callable
+
+
+pipe = filter
 
 

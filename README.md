@@ -1,60 +1,65 @@
 # picles.plumber
 
-A simple data transformation pipeline.
+A simple data transformation pipeline based on python's iteration protocol that
+runs on python versions 2.7, 3.3 and 3.4.
 
 
-## Installation
-
-```bash
-git clone https://github.com/picleslivre/plumber.git && cd plumber && python setup.py install
+```
+ +----------+      +-------------+      +-------------+      +--------+      +----------+
+ | Producer | ---> | Transformer | ---> | Transformer | ---> | Tester | ---> | Consumer |
+ +----------+      +-------------+      +-------------+      +--------+      +----------+
 ```
 
 
-## Basic usage
+A pipeline model expects 4 types of filters:
+
+* Producer: starting point, outbound only;
+* Transformer: input, processing, output;
+* Tester: input, discard or pass-thru;
+* Consumer: ending point, inbound only.
+
 
 ```python
 import plumber
 
-@plumber.pipe
-def strip_pipe(data):
-    return data.strip()
-
-@plumber.pipe
-def upper_pipe(data):
+@plumber.filter
+def upper(data):
     return data.upper()
 
-ppl = plumber.Pipeline(strip_pipe, upper_pipe)
-transformed_data = ppl.run([" I am the Great Cornholio!", "Hey Jude, don't make it bad "])
+ppl = plumber.Pipeline(upper)
+output = ppl.run("Hey Jude, don't make it bad")
 
-for td in transformed_data:
-    print(td)
-
-I AM THE GREAT CORNHOLIO!
+print(''.join(output))
 HEY JUDE, DON'T MAKE IT BAD
 ```
 
 
-## Class based pipes
+Since the design is based on python's iteration protocol, both producers and 
+consumers are ordinary iterable objects. Transformers are implemented as 
+callables that accept a single argument, perform the processing and return the 
+result. 
+
+Input data may also be checked against some preconditions in order to decide 
+if the transformation should happen or be by-passed. For example:
+
 
 ```python
 import plumber
 
-class StripPipe(plumber.Pipe):
-    def transform(self, data):
-        return data.strip()
+def is_vowel(data):
+    if data not in 'aeiou':
+        raise plumber.UnmetPrecondition()
 
-class UpperPipe(plumber.Pipe):
-    def transform(self, data):
-        return data.upper()
+@plumber.filter
+@plumber.precondition(is_vowel)
+def upper(data):
+    return data.upper()
 
-ppl = plumber.Pipeline(StripPipe(), UpperPipe())
-transformed_data = ppl.run([" I am the Great Cornholio!", "Hey Jude, don't make it bad "])
+ppl = plumber.Pipeline(upper)
+output = ppl.run("Hey Jude, don't make it bad")
 
-for td in transformed_data:
-    print(td)
-
-I AM THE GREAT CORNHOLIO!
-HEY JUDE, DON'T MAKE IT BAD
+print(''.join(output))
+hEy jUdE, dOn't mAkE It bAd
 ```
 
 
@@ -66,8 +71,9 @@ limit of items to be pre fetched.
 
 Using the same example as above:
 
+
 ```python
-ppl = plumber.Pipeline(StripPipe(), UpperPipe())
+ppl = plumber.Pipeline(stripper, upper)
 transformed_data = ppl.run([" I am the Great Cornholio!", "Hey Jude, don't make it bad "], 
                            prefetch=2)
 
@@ -82,35 +88,20 @@ By default the prefetching mechanism is thread-based, so be careful with cpu-bou
 pipelines.
 
 
-## Preconditions
+## Installation
 
-As the name suggests, a precondition is used to test if a pipe can be processed, 
-before being processed. It is implemented as a function that receives the pipe input
-and performs some validation raising `UnmetPrecondition` or returning `None`.
+Pypi (recommended):
 
-
-```python
-from plumber import Pipe, precondition, UnmetPrecondition
-
-def is_text(data):
-    if not isinstance(data, basestring):
-        raise UnmetPrecondition()
-
-class StripPipe(plumber.Pipe):
-    @precondition(is_text)
-    def transform(self, data):
-        return data.strip()
+```bash
+pip install picles.plumber
 ```
 
-Function based pipes can also define preconditions, but the decorators must be declared
-in the following order:
+Source code (development version):
 
-```python
-@pipe
-@precondition(is_text)
-def do_something(data):
-    """some code"""
+```bash
+git clone https://github.com/picleslivre/plumber.git && cd plumber && python setup.py install
 ```
+
 
 ## Use license
 

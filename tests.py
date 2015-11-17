@@ -282,13 +282,13 @@ class PipelineTests(unittest.TestCase):
 
 class FunctionBasedPipesTests(unittest.TestCase):
 
-    def test_pipe_decorator_adds_pipe_attribute(self):
+    def test_pipe_decorator_adds_filter_attribute(self):
         from plumber import pipe
         @pipe
         def do_something(data):
             return data.lower()
 
-        self.assertTrue(hasattr(do_something, '_pipe'))
+        self.assertTrue(hasattr(do_something, '_filter'))
 
     def test_pipe_function_runs(self):
         from plumber import Pipeline, pipe
