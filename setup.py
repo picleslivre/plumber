@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import sys
+import codecs
 from setuptools import setup, Extension
 
 import plumber
@@ -14,6 +15,7 @@ setup(
     name="picles.plumber",
     version='.'.join(plumber.__version__),
     description="Simple data transformation pipeline.",
+    long_description=codecs.open('README.rst', mode='r', encoding='utf-8').read(),
     author="Gustavo Fonseca & contributors",
     author_email="gustavo@gfonseca.net",
     license="BSD",
